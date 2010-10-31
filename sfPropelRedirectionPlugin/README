@@ -1,0 +1,55 @@
+sfPropelRedirectionPlugin is an extension to Symfony that allows the programmer
+to use an alternate database connection on read operations under certain conditions
+if they are specified. The above is a commented example of an app.yml that contains
+configuration options to the plugin:
+
+all:
+  redirection:
+    databases:
+      #Identifier for the database at the databases.yml
+      propel:
+        slaves:
+          #The slaves identifiers has not special usage.
+          slave1:
+            dsn:        mysql:dbname=sayeet_repl;host=localhost
+            username:   symfony
+            password:   symfony
+          slave2:
+            dsn:        mysql:dbname=sayeet_repl;host=localhost
+            username:   symfony
+            password:   symfony
+        #Entitied that may can be read from the slave servers
+        entities:
+          Message:
+            #Column that indicates the "age" of a record.
+            gen_column: posted_at
+            #Conditions dictates when is safe to read from the slave servers, just one is needed.
+            #The ctx indicates the module/action pair on wich is valid to read from slaves
+            #added enforces a check over the criteria object to ensure that the records
+            #seeked are "old" enough to be at the slave servers, added has the form of
+            #{s: seconds, m: minutes, h: hours, D: days, M: months, Y: years}
+            conditions: [{ctx: stats/index,added:{m: 30}},{ctx: board/index,added:{h: 1}}]
+          #No conditions or any emtpy condition means to ALWAYS read from the slaves.
+          Topic:
+            conditions: []
+          Student:
+            conditions: [{ctx: people/index},{}]
+
+Take into account that for the *added* component of conditions to be
+considered the following need to apply:
+
+1) A valid gen_column is provided.
+2) The criteria object involves the use of the gen_column.
+3) The comparison on the criteria object is <, <= or ==.
+
+Any other variant uses the default connection.
+
+If you need to get a connection to slave servers bypassing the conditions look
+at the next code:
+
+    $con = sfPropelRedirection::getConnectionToSlave(MessagePeer::DATABASE_NAME);
+    $sql = "SELECT customer.name, customer.id, COUNT(order.num) AS num_ord
+            FROM customer INNER JOIN order ON customers.cust_id = orders.cust_id
+            GROUP BY customers.cust_id;";
+    $stm = $con->createStatement();
+    $rs = $stm->executeQuery($sql, ResultSet::FETCHMODE_NUM);
