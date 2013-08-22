@@ -1,7 +1,7 @@
 <?php
 /*
- * @package: sip.plugins
- * @author: Horacio Nuñez
+ * @package: horacionunez.plugins
+ * @author: Horacio Nuï¿½ez
  */
 
 /*
